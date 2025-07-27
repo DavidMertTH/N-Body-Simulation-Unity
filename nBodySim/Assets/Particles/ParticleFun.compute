@@ -1,0 +1,55 @@
+﻿#pragma kernel CSParticle
+
+RWStructuredBuffer<float3> posBuffer;
+RWStructuredBuffer<float3> velBuffer;
+RWStructuredBuffer<float> massBuffer;
+
+float deltaTime;
+float mouseMass;
+float2 mousePosition;
+uint numParticles;
+
+groupshared float3 sharedPositions[256];
+groupshared float3 sharedMass[256];
+
+float3 getDir(float3 targetPosition, float targetMass, float3 currentPos)
+{
+    float3 xij = targetPosition - currentPos;
+    float distSqr = dot(xij, xij) + 0.000001;
+
+    float dist = rsqrt(distSqr);
+    float denom = dist * dist ;
+
+    float3 force = targetMass * denom * xij;
+    return force/100;
+}
+
+[numthreads(256, 1, 1)]
+void CSParticle(uint3 globalID : SV_DispatchThreadID,
+                uint3 localID : SV_GroupThreadID,
+                uint3 groupID : SV_GroupID)
+{
+    float3 delta = float3(0, 0, 0);
+    uint BatchAmount = (numParticles + 255) / 256;
+
+    float3 currentPos = posBuffer[globalID.x];
+
+    for (uint t = 0; t < BatchAmount; t++)
+    {
+        GroupMemoryBarrierWithGroupSync();
+        sharedPositions[localID.x] = posBuffer[t * 256 + localID.x];
+        sharedMass[localID.x] = massBuffer[t * 256 + localID.x];
+        GroupMemoryBarrierWithGroupSync();
+        for (uint i = 0; i < 256; i++)
+        {
+            delta += getDir(sharedPositions[i], sharedMass[ i], currentPos);
+        }
+    }
+    delta *= 0.0000005;
+    float3 mousePos = float3(mousePosition, 0);
+    delta += getDir(mousePos, mouseMass, currentPos);
+
+    float3 velocity = velBuffer[globalID.x] + 0.003 * delta * 0.999;
+    velBuffer[globalID.x] = velocity;
+    posBuffer[globalID.x] += velocity * deltaTime;
+}
