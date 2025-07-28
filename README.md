@@ -1,5 +1,3 @@
 # N-Body-Simulation-Unity
 N-Body Physics Simulation implemented using Unity Compute Shaders
-
-https://github.com/user-attachments/assets/ae99b3a5-1427-4a2b-8daf-2d64aac3842a
-
+![Unity_9WemR8U1OB](https://github.com/user-attachments/assets/b0213949-b4fc-4aa5-8d17-1653b9346539)
